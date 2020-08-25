@@ -65,3 +65,5 @@ def faster_vol_calc(full_frame, iterations: int = 50):
         
     full_frame.loc[good_data.index, 'impl_vol'] = good_data['impl_vol_guess']
     full_frame.loc[full_frame.index.difference(good_data.index), 'impl_vol'] = nan
+
+    return full_frame.impl_vol
