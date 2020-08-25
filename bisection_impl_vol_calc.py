@@ -1,9 +1,21 @@
-from numpy import log, exp, maximum, nan
+from numpy import log, exp, maximum, nan, sign
 from scipy.stats import norm
 
 
+"""This code makes assumptions about column names in the options chain frames (full_frame variable).
+
+column_name: description
+Spot: Spot price
+StrikePrice: Strike price
+rate: risk free rate
+DTE: Days to expiry as an integer
+Type: Type of instrument between 'Put' and 'Call'
+"""
+
+
 def fast_price_wrapper(full_frame):
-    """Calculates black scholes price for entire options chain."""
+    """Calculates black scholes price for entire options chain. Only meant to be used with the faster_vol_calc module. If used independently,
+    ensure that implied vol resides inside impl_vol_guess and price would be output to price_from_guess."""
 
     d1 = (log(full_frame.Spot / full_frame.StrikePrice) + (full_frame.rate + (full_frame.impl_vol_guess ** 2) / 2) * (full_frame.DTE / 365)) / \
          (full_frame.impl_vol_guess * ((full_frame.DTE / 365) ** 0.5))
