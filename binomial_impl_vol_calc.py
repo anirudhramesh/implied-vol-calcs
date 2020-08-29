@@ -26,12 +26,16 @@ def fast_eur_binomial_option_price_wrapper(option_chain, steps=500):
     option_chain['d'] = 1 / option_chain['u']
     option_chain['p'] = (np.exp(option_chain.rate * option_chain.dt) - option_chain.d) / (option_chain.u - option_chain.d)
 
-    option_chain['St'] = option_chain.Spot * (option_chain.u ** (np.arange(steps, -(steps+1), -2)))
-    option_chain['binom_expansion'] = [np.array(binom(step, 1-p).pmf(range(steps+1))) for p in option_chain.p.values]
+    option_chain['St'] = (option_chain.Spot.values * np.power(option_chain.u.values, np.tile(np.arange(steps, -(steps+1), -2), (option_chain.shape[0], 1)).T)).T
+    option_chain['binom_expansion'] = [np.array(binom(steps, 1-p).pmf(range(steps+1))) for p in option_chain.p.values]
 
     calls, puts = option_chain.Type == 'Call', option_chain.Type == 'Put'
-    option_chain.loc[calls, 'price_from_guess'] = np.maximum(0, option_chain.loc[calls, 'Spot'] - option_chain.loc[calls, 'StrikePrice'])
+    option_chain.loc[calls, 'price_from_guess'] = np.maximum(0, option_chain['St'] - option_chain.loc[calls, 'StrikePrice'])
     option_chain.loc[puts, 'price_from_guess'] = np.maximum(0, option_chain.loc[puts, 'StrikePrice'] - option_chain.loc[puts, 'Spot'])
+
+
+def main():
+    pass
 
 
 if __name__ == '__main__':
