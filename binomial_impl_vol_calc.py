@@ -2,7 +2,7 @@ from scipy.stats import binom
 import numpy as np
 
 
-def fast_eur_binomial_option_price_wrapper(sigma=0.3, T=1, t=0, steps=2, r=0.03, S0=100, K=100):
+def old_wrapper(sigma=0.3, T=1, t=0, steps=2, r=0.03, S0=100, K=100):
     dt = T/steps
     u = np.exp(sigma * dt**0.5)
     d = 1/u
@@ -27,4 +27,12 @@ def fast_eur_binomial_option_price_wrapper(option_chain, steps=500):
     option_chain['p'] = (np.exp(option_chain.rate * option_chain.dt) - option_chain.d) / (option_chain.u - option_chain.d)
 
     option_chain['St'] = option_chain.Spot * (option_chain.u ** (np.arange(steps, -(steps+1), -2)))
-    option_chain['binom_expansion'] = 
+    option_chain['binom_expansion'] = [np.array(binom(step, 1-p).pmf(range(steps+1))) for p in option_chain.p.values]
+
+    calls, puts = option_chain.Type == 'Call', option_chain.Type == 'Put'
+    option_chain.loc[calls, 'price_from_guess'] = np.maximum(0, option_chain.loc[calls, 'Spot'] - option_chain.loc[calls, 'StrikePrice'])
+    option_chain.loc[puts, 'price_from_guess'] = np.maximum(0, option_chain.loc[puts, 'StrikePrice'] - option_chain.loc[puts, 'Spot'])
+
+
+if __name__ == '__main__':
+    main()
