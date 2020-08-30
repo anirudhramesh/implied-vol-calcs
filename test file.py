@@ -5,10 +5,9 @@ import pandas as pd
 
 def main():
     data = pd.read_csv('data.csv', parse_dates=['Date', 'ExpiryDate'])
-    col_renames = {'CallPut': 'Type', 'Close': 'Spot', 'Strike': 'StrikePrice'}
+    col_renames = {'CallPut': 'Type', 'Close': 'Spot', 'Strike': 'StrikePrice', 'impl_vol': 'impl_vol_guess'}
     data.rename(columns=col_renames, inplace=True)
-
-    module2.fast_eur_binomial_option_price_wrapper(data[~pd.isnull(data.impl_vol_guess)].iloc[:1000])
+    price = module2.fast_eur_binomial_option_price_wrapper(data[~pd.isnull(data.impl_vol_guess)])
 
 
 if __name__ == '__main__':

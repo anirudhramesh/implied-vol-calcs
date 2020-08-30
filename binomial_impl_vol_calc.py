@@ -21,17 +21,39 @@ def old_wrapper(sigma=0.3, T=1, t=0, steps=2, r=0.03, S0=100, K=100):
 
 
 def fast_eur_binomial_option_price_wrapper(option_chain, steps=500):
-    option_chain['dt'] = option_chain['DTE'] / 30 / steps
-    option_chain['u'] = np.exp(option_chain.impl_vol_guess * (option_chain.dt ** 0.5))
-    option_chain['d'] = 1 / option_chain['u']
-    option_chain['p'] = (np.exp(option_chain.rate * option_chain.dt) - option_chain.d) / (option_chain.u - option_chain.d)
+    dt = option_chain['DTE'].values / 365 / steps
+    u = np.exp(option_chain.impl_vol_guess.values * (dt ** 0.5))
+    d = 1 / u
+    p = (np.exp(option_chain.rate.values * dt) - d) / (u - d)
 
-    option_chain['St'] = (option_chain.Spot.values * np.power(option_chain.u.values, np.tile(np.arange(steps, -(steps+1), -2), (option_chain.shape[0], 1)).T)).T
-    option_chain['binom_expansion'] = [np.array(binom(steps, 1-p).pmf(range(steps+1))) for p in option_chain.p.values]
+    strikes = option_chain['StrikePrice'].values
+    spots = option_chain['Spot'].values
+    rfr = option_chain['rate'].values
+    time = option_chain['DTE'].values / 365
+
+    temp = np.arange(steps, -(steps+1), -2)
+    call_price, put_price = [], []
+    for ind in range(len(spots)):
+        St = spots[ind] * (u[ind] ** temp)
+        binom_expansion = np.array(binom(steps, 1-p[ind]).pmf(range(steps+1)))
+
+        calls = np.array(list(map(max, np.zeros(len(St)), St - strikes[ind])))
+        puts = np.array(list(map(max, np.zeros(len(St)), strikes[ind] - St)))
+
+        call_price.append(sum(binom_expansion * calls) * np.exp(-rfr[ind] * time[ind]))
+        put_price.append(sum(binom_expansion * puts) * np.exp(-rfr[ind] * time[ind]))
+
+    # St = (option_chain.Spot.values * np.power(u, np.tile(np.arange(steps, -(steps+1), -2), (option_chain.shape[0], 1)).T))
+    # binom_expansion = np.array([np.array(binom(steps, 1-p_).pmf(range(steps+1))) for p_ in p])
+    #
+    # calls_intrinsic = np.maximum(0, St - option_chain['StrikePrice'].values).T
+    # puts_intrinsic = np.maximum(0, option_chain['StrikePrice'].values - St).T
 
     calls, puts = option_chain.Type == 'Call', option_chain.Type == 'Put'
-    option_chain.loc[calls, 'price_from_guess'] = np.maximum(0, option_chain['St'] - option_chain.loc[calls, 'StrikePrice'])
-    option_chain.loc[puts, 'price_from_guess'] = np.maximum(0, option_chain.loc[puts, 'StrikePrice'] - option_chain.loc[puts, 'Spot'])
+    option_chain.loc[calls, 'price_from_guess'] = call_price[calls]
+    option_chain.loc[puts, 'price_from_guess'] = put_price[puts]
+
+    return option_chain['price_from_guess']
 
 
 def main():
